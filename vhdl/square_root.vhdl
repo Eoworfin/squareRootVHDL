@@ -19,7 +19,7 @@ architecture rtl of squareRoot is
     type state_type is (IDLE, CALC);
     signal state : state_type := IDLE;
 
-    -- Interne Signale (breiter als nötig, um Overflow zu vermeiden)
+    -- Interne Signale 
     signal root_reg      : unsigned(15 downto 0) := (others => '0');
     signal remainder_reg : unsigned(15 downto 0) := (others => '0');
     signal mask_reg      : unsigned(15 downto 0) := (others => '0');
@@ -53,7 +53,6 @@ begin
 
                 when IDLE =>
                     if start = '1' then
-                        -- Initialisierung wie im C-Code
                         remainder_reg <= resize(unsigned(value), 16);   -- value auf 16 Bit erweitern
                         root_reg      <= (others => '0');
                         mask_reg      <= to_unsigned(2**(16-2), 16);    -- mask = 2**14 = 16384
