@@ -1,86 +1,145 @@
-
-
---DIES IST EIN KI BEISPIEL
-
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
+use ieee.std_logic_textio.all;
 
-entity tb_squareRoot is
-end entity;
+entity squareRoot_tb is
+end entity squareRoot_tb;
 
-architecture sim of tb_squareRoot is
-    -- Component declaration deines squareRoot
-    component squareRoot
-        port (
-            clock   : in  std_logic;
-            reset   : in  std_logic;
-            start   : in  std_logic;
-            value   : in  std_logic_vector(9 downto 0);
-            roundup : in  std_logic;
-            done    : out std_logic;
-            result  : out std_logic_vector(9 downto 0)
-        );
-    end component;
+architecture tb of squareRoot_tb is
 
-    signal clock   : std_logic := '0';
-    signal reset   : std_logic := '1';
-    signal start   : std_logic := '0';
-    signal value   : std_logic_vector(9 downto 0) := (others=>'0');
-    signal roundup : std_logic := '0';
-    signal done    : std_logic;
-    signal result  : std_logic_vector(9 downto 0);
+    -- DUT Signals
+    signal s_clock     : std_logic := '0';
+    signal s_reset     : std_logic := '1';
+    signal s_start     : std_logic := '0';
+    signal s_value     : std_logic_vector(9 downto 0) := (others => '0');
+    signal s_roundup   : std_logic := '0';
+    signal s_done      : std_logic;
+    signal s_result    : std_logic_vector(9 downto 0);
 
+    -- Clock-Period
     constant CLK_PERIOD : time := 10 ns;
 
+    -- Zähler für Statistik
+    signal test_count     : integer := 0;
+    signal error_count    : integer := 0;
+
+    
+
 begin
-    DUT: squareRoot port map (clock, reset, start, value, roundup, done, result);
 
-    clock <= not clock after CLK_PERIOD/2;
+    -- DUT Instanziierung
+    DUT: entity work.squareRoot
+        port map (
+            clock   => s_clock,
+            reset   => s_reset,
+            start   => s_start,
+            value   => s_value,
+            roundup => s_roundup,
+            done    => s_done,
+            result  => s_result
+        );
 
+    -- Clock Generator
+    s_clock <= not s_clock after CLK_PERIOD/2;
+
+    -- Stimulus + Self-Checking Process
     stim_proc: process
+
         file golden_file : text open read_mode is "../golden reference/golden_reference_squareroot.txt";
         variable line_buf : line;
-        variable v_value, v_roundup, v_expected : integer;
-        variable errors : integer := 0;
+        variable v_value  : integer;
+        variable v_round  : integer;
+        variable v_exp    : integer;
+        variable ok       : boolean;
+
+        variable current_value  : unsigned(9 downto 0) := (others => '0');
+        variable expected_res   : unsigned(9 downto 0) := (others => '0');
+        variable current_round  : std_logic := '0';
+
     begin
-        reset <= '0';
-        wait for 100 ns;
-        reset <= '1';
-        wait for CLK_PERIOD*5;
+        report "=== SquareRoot Testbench (mask/root/remainder Algorithmus) gestartet ===" severity note;
 
+        -- Reset
+        s_reset <= '1';
+        s_roundup <= '1';
+        s_start <= '0';
+        wait for 5*CLK_PERIOD;
+        s_reset <= '0';
+        wait for 3*CLK_PERIOD;
+
+        -- Datei zeilenweise einlesen
         while not endfile(golden_file) loop
+
             readline(golden_file, line_buf);
-            read(line_buf, v_value);
-            read(line_buf, v_roundup);
-            read(line_buf, v_expected);
 
-            value   <= std_logic_vector(to_unsigned(v_value, 10));
-            roundup <= std_logic'val(v_roundup);   -- '0' or '1'
-
-            start <= '1';
-            wait for CLK_PERIOD;
-            start <= '0';
-
-            -- Warte bis done = '1' (je nach deiner Implementierung evtl. mehrere Takte)
-            wait until done = '1';
-
-            if to_integer(unsigned(result)) /= v_expected then
-                report "FEHLER bei value=" & integer'image(v_value) &
-                       " roundup=" & integer'image(v_roundup) &
-                       "  erwartet=" & integer'image(v_expected) &
-                       "  erhalten=" & integer'image(to_integer(unsigned(result)))
-                    severity error;
-                errors := errors + 1;
+            -- Kommentare und leere Zeilen überspringen
+            if line_buf'length = 0 or line_buf.all(1) = '#' then
+                next;
             end if;
 
-            wait for CLK_PERIOD * 2;   -- kleine Pause zwischen Tests
+            -- Format: value roundup expected_result  (alle dezimal)
+            read(line_buf, v_value, ok);
+            assert ok report "Fehler beim Lesen von value!" severity failure;
+
+            read(line_buf, v_round, ok);
+            assert ok report "Fehler beim Lesen von roundup!" severity failure;
+
+            read(line_buf, v_exp, ok);
+            assert ok report "Fehler beim Lesen von expected_result!" severity failure;
+
+            current_value := to_unsigned(v_value, 10);
+            current_round := '1' when v_round /= 0 else '0';
+            expected_res  := to_unsigned(v_exp, 10);
+
+            test_count <= test_count + 1;
+
+            -- Warte bis DUT idle ist
+            wait until s_done = '0' for 20*CLK_PERIOD;
+
+            -- Stimulus anlegen
+            s_value   <= std_logic_vector(current_value);
+            s_start   <= '1';
+            s_roundup <= current_round;
+            wait for CLK_PERIOD;
+            s_start <= '0';
+
+            -- Warte auf done
+            wait until s_done = '1' for 20*CLK_PERIOD;
+
+            assert s_done = '1'
+                report "Timeout: done kam nicht! (value=" & integer'image(v_value) & ")"
+                severity failure;
+
+            -- Ergebnis vergleichen
+            if unsigned(s_result) /= expected_res then
+                error_count <= error_count + 1;
+                report "FEHLER bei value=" & integer'image(v_value) &
+                       "  roundup=" & integer'image(v_round) &
+                       "  Erwartet=" & integer'image(v_exp) &
+                       "  Erhalten=" & integer'image(to_integer(unsigned(s_result)))
+                    severity error;
+            end if;
+
+            -- Kurze Pause zwischen den Tests
+            wait for 2*CLK_PERIOD;
+
         end loop;
 
-        report "Test abgeschlossen. Anzahl Fehler: " & integer'image(errors);
+        -- Abschlussbericht
+        if error_count = 0 then
+            report "=== TEST ERFOLGREICH ABGESCHLOSSEN! ===" & lf &
+                   "  Getestete Vektoren : " & integer'image(test_count) & lf &
+                   "  Fehler             : 0" severity note;
+        else
+            report "=== TEST MIT FEHLERN ABGESCHLOSSEN! ===" & lf &
+                   "  Getestete Vektoren : " & integer'image(test_count) & lf &
+                   "  Fehler             : " & integer'image(error_count) severity error;
+        end if;
+
         wait;
+
     end process;
 
-end architecture;
+end architecture tb;

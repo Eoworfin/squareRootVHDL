@@ -2,7 +2,7 @@
 # Erstellt das Golden Reference File direkt im Ordner testbench/
 
 # Golden Reference für squareRoot Entity
-# Speicherort: testbench/golden_reference_square_root.txt
+# Speicherort: goldne reference/golden_reference_square_root.txt
 # Format: value roundup expected_result
 # value   : 0 .. 1023 (Dezimal)
 # roundup : 0 = floor (abrunden)

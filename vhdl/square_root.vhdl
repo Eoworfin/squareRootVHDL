@@ -16,88 +16,86 @@ end entity squareRoot;
 
 architecture rtl of squareRoot is
 
-    type state_type is (IDLE, CALC);
+    type state_type is (IDLE, INIT, CALC, FINISH);
     signal state : state_type := IDLE;
 
-    -- Interne Register
-    signal radicand_reg : unsigned(19 downto 0);   -- 10 Bit Input + 10 Bit für Iterationen
-    signal root_reg     : unsigned(9 downto 0);
-    signal remain_reg   : unsigned(11 downto 0);
-    signal step_counter : unsigned(2 downto 0);    -- 0 bis 4 (5 Iterationen)
+    signal root_reg      : unsigned(9 downto 0);
+    signal remainder_reg : unsigned(9 downto 0);
+    signal mask_reg      : unsigned(9 downto 0);
 
-    signal done_int     : std_logic := '0';
-    signal start_prev   : std_logic := '0';        -- für exakte 1-Takt-Erkennung von start
+    signal done_reg      : std_logic := '0';
+    signal result_reg    : unsigned(9 downto 0) := (others => '0');
+
+    constant NR_OF_BITS : integer := 10;
 
 begin
 
-    done <= done_int;
+    done   <= done_reg;
+    result <= std_logic_vector(result_reg);
 
     process(clock, reset)
-        variable trial      : unsigned(11 downto 0);
-        variable new_remain : unsigned(11 downto 0);
-        variable new_root   : unsigned(9 downto 0);
+        variable root_temp      : unsigned(9 downto 0);
+        variable remainder_temp : unsigned(9 downto 0);
     begin
         if reset = '1' then
-            state        <= IDLE;
-            radicand_reg <= (others => '0');
-            root_reg     <= (others => '0');
-            remain_reg   <= (others => '0');
-            step_counter <= (others => '0');
-            done_int     <= '0';
-            result       <= (others => '0');
-            start_prev   <= '0';
+            state         <= IDLE;
+            done_reg      <= '0';
+            result_reg    <= (others => '0');
+            root_reg      <= (others => '0');
+            remainder_reg <= (others => '0');
+            mask_reg      <= (others => '0');
 
         elsif rising_edge(clock) then
 
-            start_prev <= start;
-            done_int   <= '0';                     -- done ist standardmäßig '0'
+            done_reg <= '0';
 
             case state is
 
-                -- ====================== IDLE ======================
                 when IDLE =>
-                    if start = '1' and start_prev = '0' then   -- Nur auf steigende Flanke von start reagieren
-                        -- Input nur hier einlesen
-                        radicand_reg <= unsigned(value) & "0000000000";  -- 10 Bit + 10 Nullen
-                        root_reg     <= (others => '0');
-                        remain_reg   <= (others => '0');
-                        step_counter <= (others => '0');
-                        state        <= CALC;
+                    if start = '1' then
+                        remainder_reg <= unsigned(value);
+                        state         <= INIT;
                     end if;
 
-                -- ====================== CALC ======================
+                when INIT =>
+                    root_reg      <= (others => '0');
+                    mask_reg      <= to_unsigned(1, 10) sll (NR_OF_BITS - 2);  -- 2^(8) = 256 bei 10 Bit
+                    state         <= CALC;
+
                 when CALC =>
-                    -- Trial berechnen: (remain << 2) + 1
-                    trial := (remain_reg(9 downto 0) & "00") + 1;
+                    root_temp      := root_reg;
+                    remainder_temp := remainder_reg;
 
-                    if remain_reg >= trial then
-                        new_remain := remain_reg - trial;
-                        new_root   := root_reg(8 downto 0) & '1';
+                    -- if ((root + mask) <= remainder)
+                    if (root_temp + mask_reg) <= remainder_temp then
+                        remainder_temp := remainder_temp - (root_temp + mask_reg);
+                        root_temp      := root_temp + (mask_reg sll 1);   -- root += (mask << 1)
+                    end if;
+
+                    -- root >>= 1
+                    root_temp := root_temp srl 1;
+
+                    -- mask >>= 2
+                    mask_reg <= mask_reg srl 2;
+
+                    -- Update Register
+                    root_reg      <= root_temp;
+                    remainder_reg <= remainder_temp;
+
+                    -- Schleife beenden, wenn mask nach Shift == 0
+                    if (mask_reg srl 2) = 0 then
+                        state <= FINISH;
+                    end if;
+
+                    when FINISH =>
+                    if (roundup = '1') and (remainder_reg > root_reg) then
+                        result_reg <= root_reg + 1;
                     else
-                        new_remain := remain_reg;
-                        new_root   := root_reg(8 downto 0) & '0';
+                        result_reg <= root_reg;
                     end if;
 
-                    -- Nächste 2 Bits vom Radicand in Remainder schieben
-                    remain_reg   <= new_remain(9 downto 0) & radicand_reg(19 downto 18);
-                    root_reg     <= new_root;
-                    radicand_reg <= radicand_reg(17 downto 0) & "00";
-
-                    step_counter <= step_counter + 1;
-
-                    -- Nach genau 5 Iterationen fertig
-                    if step_counter = 4 then
-                        -- Rounding
-                        if roundup = '1' then
-                            if new_remain >= (new_root + 1) then   -- Round half up
-                                new_root := new_root + 1;
-                            end if;
-                        end if;
-
-                        result   <= std_logic_vector(new_root);
-                        done_int <= '1';      -- done genau 1 Takt lang
-                        state    <= IDLE;
-                    end if;
+                    done_reg <= '1';
+                    state    <= IDLE;
 
             end case;
         end if;
