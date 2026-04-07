@@ -19,78 +19,83 @@ architecture rtl of squareRoot is
     type state_type is (IDLE, CALC);
     signal state : state_type := IDLE;
 
-    -- Interne Signale 
-    signal root_reg      : unsigned(15 downto 0) := (others => '0');
-    signal remainder_reg : unsigned(15 downto 0) := (others => '0');
-    signal mask_reg      : unsigned(15 downto 0) := (others => '0');
-    signal bit_counter   : integer range 0 to 8 := 0;   -- max. 8 Iterationen für 10-Bit-Eingang
+    -- Interne Register
+    signal radicand_reg : unsigned(19 downto 0);   -- 10 Bit Input + 10 Bit für Iterationen
+    signal root_reg     : unsigned(9 downto 0);
+    signal remain_reg   : unsigned(11 downto 0);
+    signal step_counter : unsigned(2 downto 0);    -- 0 bis 4 (5 Iterationen)
 
-    signal done_int      : std_logic := '0';
+    signal done_int     : std_logic := '0';
+    signal start_prev   : std_logic := '0';        -- für exakte 1-Takt-Erkennung von start
 
 begin
 
     done <= done_int;
 
     process(clock, reset)
-        variable root_temp      : unsigned(15 downto 0);
-        variable remainder_temp : unsigned(15 downto 0);
-        variable mask_temp      : unsigned(15 downto 0);
+        variable trial      : unsigned(11 downto 0);
+        variable new_remain : unsigned(11 downto 0);
+        variable new_root   : unsigned(9 downto 0);
     begin
         if reset = '1' then
-            state         <= IDLE;
-            root_reg      <= (others => '0');
-            remainder_reg <= (others => '0');
-            mask_reg      <= (others => '0');
-            bit_counter   <= 0;
-            done_int      <= '0';
-            result        <= (others => '0');
+            state        <= IDLE;
+            radicand_reg <= (others => '0');
+            root_reg     <= (others => '0');
+            remain_reg   <= (others => '0');
+            step_counter <= (others => '0');
+            done_int     <= '0';
+            result       <= (others => '0');
+            start_prev   <= '0';
 
         elsif rising_edge(clock) then
 
-            done_int <= '0';   -- Standard: done nur einen Takt aktiv
+            start_prev <= start;
+            done_int   <= '0';                     -- done ist standardmäßig '0'
 
             case state is
 
+                -- ====================== IDLE ======================
                 when IDLE =>
-                    if start = '1' then
-                        remainder_reg <= resize(unsigned(value), 16);   -- value auf 16 Bit erweitern
-                        root_reg      <= (others => '0');
-                        mask_reg      <= to_unsigned(2**(16-2), 16);    -- mask = 2**14 = 16384
-                        bit_counter   <= 0;
-                        state         <= CALC;
+                    if start = '1' and start_prev = '0' then   -- Nur auf steigende Flanke von start reagieren
+                        -- Input nur hier einlesen
+                        radicand_reg <= unsigned(value) & "0000000000";  -- 10 Bit + 10 Nullen
+                        root_reg     <= (others => '0');
+                        remain_reg   <= (others => '0');
+                        step_counter <= (others => '0');
+                        state        <= CALC;
                     end if;
 
+                -- ====================== CALC ======================
                 when CALC =>
-                    root_temp      := root_reg;
-                    remainder_temp := remainder_reg;
-                    mask_temp      := mask_reg;
+                    -- Trial berechnen: (remain << 2) + 1
+                    trial := (remain_reg(9 downto 0) & "00") + 1;
 
-                    -- Eine Iteration des C-Algorithmus
-                    if (root_temp + mask_temp) <= remainder_temp then
-                        remainder_temp := remainder_temp - (root_temp + mask_temp);
-                        root_temp      := root_temp + (mask_temp sll 1);   -- mask << 1
+                    if remain_reg >= trial then
+                        new_remain := remain_reg - trial;
+                        new_root   := root_reg(8 downto 0) & '1';
+                    else
+                        new_remain := remain_reg;
+                        new_root   := root_reg(8 downto 0) & '0';
                     end if;
 
-                    root_temp := root_temp srl 1;      -- root >>= 1
-                    mask_temp := mask_temp srl 2;      -- mask >>= 2
+                    -- Nächste 2 Bits vom Radicand in Remainder schieben
+                    remain_reg   <= new_remain(9 downto 0) & radicand_reg(19 downto 18);
+                    root_reg     <= new_root;
+                    radicand_reg <= radicand_reg(17 downto 0) & "00";
 
-                    -- Register aktualisieren
-                    root_reg      <= root_temp;
-                    remainder_reg <= remainder_temp;
-                    mask_reg      <= mask_temp;
+                    step_counter <= step_counter + 1;
 
-                    bit_counter <= bit_counter + 1;
-
-                    -- Nach 8 Iterationen (genug für 10-Bit-Eingang) fertig
-                    if bit_counter = 7 then
-                        -- Rounding wie im C-Code
-                        if (remainder_temp > root_temp) and (roundup = '1') then
-                            root_temp := root_temp + 1;
+                    -- Nach genau 5 Iterationen fertig
+                    if step_counter = 4 then
+                        -- Rounding
+                        if roundup = '1' then
+                            if new_remain >= (new_root + 1) then   -- Round half up
+                                new_root := new_root + 1;
+                            end if;
                         end if;
 
-                        -- Ergebnis ausgeben (nur untere 10 Bit, da entity 10 Bit hat)
-                        result   <= std_logic_vector(resize(root_temp, 10));
-                        done_int <= '1';
+                        result   <= std_logic_vector(new_root);
+                        done_int <= '1';      -- done genau 1 Takt lang
                         state    <= IDLE;
                     end if;
 
