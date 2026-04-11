@@ -17,6 +17,9 @@ end entity squareRoot_tb;
 architecture tb of squareRoot_tb is
 
     -- DUT Signals
+
+
+    --er will das als component
     signal s_clock     : std_logic := '0'; --direkte zuweisungen verboten
     signal s_reset     : std_logic := '1';
     signal s_start     : std_logic := '0';
@@ -37,7 +40,7 @@ architecture tb of squareRoot_tb is
 begin
 
     -- DUT Instanziierung
-    DUT: entity work.squareRoot
+    DUT: entity work.squareRoot --warum entity
         port map (
             clock   => s_clock,
             reset   => s_reset,
@@ -52,7 +55,7 @@ begin
     s_clock <= not s_clock after CLK_PERIOD/2;
 
     -- Stimulus + Self-Checking Process
-    stim_proc: process--ist es nicht procedure?
+    stim_proc: process--er will eine eigene entity für fileread siehe golden reference ppt s.7
 
         file golden_file : text open read_mode is "../golden reference/golden_reference_squareroot.txt";
         variable line_buf : line;
@@ -64,7 +67,7 @@ begin
         variable current_value  : unsigned(9 downto 0) := (others => '0');
         variable expected_res   : unsigned(9 downto 0) := (others => '0');
         variable current_round  : std_logic := '0';
-
+--keine procedure?
     begin
         report "=== SquareRoot Testbench (mask/root/remainder Algorithmus) gestartet ===" severity note;
 
@@ -88,7 +91,7 @@ begin
 
             -- Format: value roundup expected_result  (alle dezimal)
             read(line_buf, v_value, ok);
-            assert ok report "Fehler beim Lesen von value!" severity failure;
+            assert ok report "Fehler beim Lesen von value!" severity failure;--geht das auf einer linie?
 
             read(line_buf, v_round, ok);
             assert ok report "Fehler beim Lesen von roundup!" severity failure;
@@ -96,7 +99,7 @@ begin
             read(line_buf, v_exp, ok);
             assert ok report "Fehler beim Lesen von expected_result!" severity failure;
 
-            current_value := to_unsigned(v_value, 10);
+            current_value := to_unsigned(v_value, 10);--geht das auf einer linie?
             current_round := '1' when v_round /= 0 else '0';
             expected_res  := to_unsigned(v_exp, 10);
 

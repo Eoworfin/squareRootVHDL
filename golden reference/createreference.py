@@ -27,7 +27,7 @@ def main():
     directory = "golden reference"
     filename = os.path.join(directory, "golden_reference_squareroot.txt")
     
-    # Erstelle den Ordner "testbench", falls er noch nicht existiert
+    # Erstelle Ordner "testbench", falls noch nicht existiert
     os.makedirs(directory, exist_ok=True)
     
     print(f"Golden Reference wird erstellt unter:")
