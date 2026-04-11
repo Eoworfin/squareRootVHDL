@@ -1,3 +1,11 @@
+-- ==================================================================================
+--  File:         <squareRoot.vhdl>  -  <Square Root>
+--  Author(s):    <Dirnberger / Group 10>
+--  Created on:   <07.04.2026>
+--  Project:      <Square Root>
+-- ==================================================================================--
+
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -17,16 +25,16 @@ end entity squareRoot;
 architecture rtl of squareRoot is
 
     type state_type is (IDLE, INIT, CALC, FINISH);
-    signal state : state_type := IDLE;
+    signal state : state_type := IDLE;--hier auch direkt zuweisung verboten
 
     signal root_reg      : unsigned(9 downto 0);
     signal remainder_reg : unsigned(9 downto 0);
     signal mask_reg      : unsigned(9 downto 0);
 
-    signal done_reg      : std_logic := '0';
-    signal result_reg    : unsigned(9 downto 0) := (others => '0');
+    signal done_reg      : std_logic := '0'; --darf so nicht gemacht werden laut klutti
+    signal result_reg    : unsigned(9 downto 0) := (others => '0'); --hier auch direkte zuweisung verboten
 
-    constant NR_OF_BITS : integer := 10;
+    constant NR_OF_BITS : integer := 10; --hier auch
 
 begin
 

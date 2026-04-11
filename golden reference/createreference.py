@@ -1,3 +1,10 @@
+#==================================================================================
+#  File:         <createreference.py>  -  <square root>
+#  Author(s):    <Thomet / Group 10>
+#  Created on:   <09.03.2026>
+#  Project:      <square root>
+# ==================================================================================
+
 # generate_squareroot_golden.py
 # Erstellt das Golden Reference File direkt im Ordner testbench/
 

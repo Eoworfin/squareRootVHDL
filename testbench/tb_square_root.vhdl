@@ -1,3 +1,10 @@
+-- ==================================================================================
+--  File:         <tb_square_root.vhdl>  -  <Square Root>
+--  Author(s):    <Thomet / Group 10>
+--  Created on:   <07.04.2026>
+--  Project:      <Square Root>
+-- ==================================================================================--
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -10,7 +17,7 @@ end entity squareRoot_tb;
 architecture tb of squareRoot_tb is
 
     -- DUT Signals
-    signal s_clock     : std_logic := '0';
+    signal s_clock     : std_logic := '0'; --direkte zuweisungen verboten
     signal s_reset     : std_logic := '1';
     signal s_start     : std_logic := '0';
     signal s_value     : std_logic_vector(9 downto 0) := (others => '0');
@@ -45,7 +52,7 @@ begin
     s_clock <= not s_clock after CLK_PERIOD/2;
 
     -- Stimulus + Self-Checking Process
-    stim_proc: process
+    stim_proc: process--ist es nicht procedure?
 
         file golden_file : text open read_mode is "../golden reference/golden_reference_squareroot.txt";
         variable line_buf : line;
