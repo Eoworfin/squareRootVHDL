@@ -72,7 +72,6 @@ begin
         end loop;
     end process;
 
-
     -- Stimulus + Self-Checking Process
     stim_proc: process--er will eine eigene entity für fileread siehe golden reference ppt s.7 => Kann man => Weiss ich nicht wie
 
@@ -86,7 +85,33 @@ begin
         variable current_value  : unsigned(9 downto 0) := (others => '0');
         variable expected_res   : unsigned(9 downto 0) := (others => '0');
         variable current_round  : std_logic := '0';
---keine procedure? => Möglich
+
+
+    procedure sq_check(value : std_logic_vector;expected_value : std_logic_vector; round_bit : std_logic) is
+        begin
+            s_value   <= value;
+            s_start   <= '1';
+            s_roundup <= round_bit;
+            wait for CLK_PERIOD;
+            s_start <= '0';
+            -- Warte auf done
+            wait until s_done = '1' for 20*CLK_PERIOD;
+            assert s_done = '1'
+                report "Timeout: done kam nicht! (value=" & integer'image(v_value) & ")"
+                severity failure;
+
+            -- Ergebnis vergleichen
+            if s_result /= expected_value then
+                error_count <= error_count + 1;
+                report "FEHLER bei value=" & integer'image(v_value) &
+                        "  roundup=" & integer'image(v_round) &
+                        "  Erwartet=" & integer'image(v_exp) &
+                        "  Erhalten=" & integer'image(to_integer(unsigned(s_result)))
+                    severity error;
+            end if;
+        end procedure;
+
+
     begin
         report "=== SquareRoot Testbench (mask/root/remainder Algorithmus) gestartet ===" severity note;
 
@@ -121,7 +146,7 @@ begin
             read(line_buf, v_exp, ok);
             assert ok report "Fehler beim Lesen von expected_result!" severity failure;
 
-            current_value := to_unsigned(v_value, 10);--geht das auf einer linie?
+            current_value := to_unsigned(v_value, 10);
             current_round := '1' when v_round /= 0 else '0';
             expected_res  := to_unsigned(v_exp, 10);
 
@@ -131,28 +156,7 @@ begin
             wait until s_done = '0' for 20*CLK_PERIOD;
 
             -- Stimulus anlegen
-            s_value   <= std_logic_vector(current_value);
-            s_start   <= '1';
-            s_roundup <= current_round;
-            wait for CLK_PERIOD;
-            s_start <= '0';
-
-            -- Warte auf done
-            wait until s_done = '1' for 20*CLK_PERIOD;
-
-            assert s_done = '1'
-                report "Timeout: done kam nicht! (value=" & integer'image(v_value) & ")"
-                severity failure;
-
-            -- Ergebnis vergleichen
-            if unsigned(s_result) /= expected_res then
-                error_count <= error_count + 1;
-                report "FEHLER bei value=" & integer'image(v_value) &
-                       "  roundup=" & integer'image(v_round) &
-                       "  Erwartet=" & integer'image(v_exp) &
-                       "  Erhalten=" & integer'image(to_integer(unsigned(s_result)))
-                    severity error;
-            end if;
+            sq_check(std_logic_vector(current_value),std_logic_vector(expected_res),std_logic(current_round));
 
             -- Kurze Pause zwischen den Tests
             wait for 2*CLK_PERIOD;
