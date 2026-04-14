@@ -30,7 +30,7 @@ architecture tb of squareRoot_tb is
     end component;
 
     -- DUT Signals
-    signal s_clock     : std_logic; --direkte zuweisungen verboten => Nimm ich raus
+    signal s_clock     : std_logic;
     signal s_reset     : std_logic;
     signal s_start     : std_logic;
     signal s_value     : std_logic_vector(9 downto 0);
@@ -73,7 +73,7 @@ begin
     end process;
 
     -- Stimulus + Self-Checking Process
-    stim_proc: process--er will eine eigene entity für fileread siehe golden reference ppt s.7 => Kann man => Weiss ich nicht wie
+    stim_proc: process
 
         file golden_file : text open read_mode is "../golden reference/golden_reference_squareroot.txt";
         variable line_buf : line;
@@ -87,6 +87,7 @@ begin
         variable current_round  : std_logic := '0';
 
 
+    -- Helper Function to check square root value
     procedure sq_check(value : std_logic_vector;expected_value : std_logic_vector; round_bit : std_logic) is
         begin
             s_value   <= value;
@@ -138,7 +139,7 @@ begin
 
             -- Format: value roundup expected_result  (alle dezimal)
             read(line_buf, v_value, ok);
-            assert ok report "Fehler beim Lesen von value!" severity failure;--geht das auf einer linie?
+            assert ok report "Fehler beim Lesen von value!" severity failure;
 
             read(line_buf, v_round, ok);
             assert ok report "Fehler beim Lesen von roundup!" severity failure;
