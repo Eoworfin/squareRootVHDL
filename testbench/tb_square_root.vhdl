@@ -17,14 +17,24 @@ end entity squareRoot_tb;
 architecture tb of squareRoot_tb is
 
     -- component für DUT wie in LIFO Buffer
-
+    component squareRoot
+        port (
+        clock   : in  std_logic;
+        reset   : in  std_logic;
+        start   : in  std_logic;
+        value   : in  std_logic_vector(9 downto 0);
+        roundup : in  std_logic;
+        done    : out std_logic;
+        result  : out std_logic_vector(9 downto 0)
+        );
+    end component;
 
     -- DUT Signals
-    signal s_clock     : std_logic := '0'; --direkte zuweisungen verboten => Nimm ich raus
-    signal s_reset     : std_logic := '1';
-    signal s_start     : std_logic := '0';
-    signal s_value     : std_logic_vector(9 downto 0) := (others => '0');
-    signal s_roundup   : std_logic := '0';
+    signal s_clock     : std_logic; --direkte zuweisungen verboten => Nimm ich raus
+    signal s_reset     : std_logic;
+    signal s_start     : std_logic;
+    signal s_value     : std_logic_vector(9 downto 0);
+    signal s_roundup   : std_logic;
     signal s_done      : std_logic;
     signal s_result    : std_logic_vector(9 downto 0);
 
@@ -32,15 +42,15 @@ architecture tb of squareRoot_tb is
     constant CLK_PERIOD : time := 10 ns;
 
     -- Zähler für Statistik
-    signal test_count     : integer := 0;
-    signal error_count    : integer := 0;
+    signal test_count     : integer;
+    signal error_count    : integer;
 
     
 
 begin
 
-    -- DUT Instanziierung --warum entity => Weiss ich den Unterschied nicht
-    DUT: entity work.squareRoot 
+    -- DUT Instanziierung
+    DUT: squareRoot
         port map (
             clock   => s_clock,
             reset   => s_reset,
@@ -52,7 +62,16 @@ begin
         );
 
     -- Clock Generator
-    s_clock <= not s_clock after CLK_PERIOD/2;
+    clk_process : process
+    begin
+        while true loop
+            s_clock <= '0';
+            wait for clk_period/2;
+            s_clock <= '1';
+            wait for clk_period/2;
+        end loop;
+    end process;
+
 
     -- Stimulus + Self-Checking Process
     stim_proc: process--er will eine eigene entity für fileread siehe golden reference ppt s.7 => Kann man => Weiss ich nicht wie
@@ -75,6 +94,9 @@ begin
         s_reset <= '1';
         s_roundup <= '1';
         s_start <= '0';
+        test_count <= 0;
+        error_count <= 0;
+        s_value <= "0000000000";
         wait for 5*CLK_PERIOD;
         s_reset <= '0';
         wait for 3*CLK_PERIOD;
