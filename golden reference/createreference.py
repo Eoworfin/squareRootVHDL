@@ -25,39 +25,41 @@ def main():
     
     # Speicherort
     directory = "golden reference"
-    filename = os.path.join(directory, "golden_reference_squareroot.txt")
+    filename_value = os.path.join(directory, "golden_reference_squareroot_value.txt")
+    filename_round = os.path.join(directory, "golden_reference_squareroot_round.txt")
+    filename_result = os.path.join(directory, "golden_reference_squareroot_result.txt")
     
-    # Erstelle Ordner "testbench", falls noch nicht existiert
-    os.makedirs(directory, exist_ok=True)
     
-    print(f"Golden Reference wird erstellt unter:")
-    print(f"   → {filename}")
+    print(f"Golden References wird erstellt unter:")
+    print(f"   → {filename_value}")
+    print(f"   → {filename_round}")
+    print(f"   → {filename_result}")
     print(f"Anzahl Testcases: 2048 (alle 10-Bit Werte × roundup 0/1)\n")
-    
-    with open(filename, "w", encoding="utf-8") as f:
-       
-        count = 0
-        for value in range(MAX_VAL + 1):
-            for roundup in [0, 1]:
-                sqrt_real = math.sqrt(value)
-                
-                if roundup == 0:
-                    result = math.floor(sqrt_real)      # abrunden
-                else:
-                    result = round(sqrt_real)           # runden
-                
-                result = min(result, MAX_VAL)
-                
-                f.write(f"{value} {roundup} {result}\n")
-                
-                count += 1
-                if count % 512 == 0:
-                    print(f"Fortschritt: {count}/2048 Testcases geschrieben...")
-    
-    file_size_kb = os.path.getsize(filename) / 1024
+
+    with open(filename_value, "w", encoding="utf-8") as f1:
+        with open(filename_round, "w", encoding="utf-8") as f2:
+            with open(filename_result, "w", encoding="utf-8") as f3:
+                count = 0
+                for value in range(MAX_VAL + 1):
+                    for roundup in [0, 1]:
+                        sqrt_real = math.sqrt(value)
+                        
+                        if roundup == 0:
+                            result = math.floor(sqrt_real)      # abrunden
+                        else:
+                            result = round(sqrt_real)           # runden
+                        
+                        result = min(result, MAX_VAL)
+                        
+                        f1.write(f"{value}\n")
+                        f2.write(f"{roundup}\n")       
+                        f3.write(f"{result}\n")           
+                        count += 1
+                        if count % 512 == 0:
+                            print(f"Fortschritt: {count}/2048 Testcases geschrieben...")
+
     print(f"\nFertig!")
-    print(f"Datei erfolgreich erstellt: {filename}")
-    print(f"Dateigröße: {file_size_kb:.1f} KB")
+
 
 if __name__ == "__main__":
     main()
