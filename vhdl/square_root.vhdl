@@ -25,14 +25,14 @@ end entity squareRoot;
 architecture rtl of squareRoot is
 
     type state_type is (IDLE, INIT, CALC, FINISH);
-    signal state : state_type := IDLE;--hier auch direkt zuweisung verboten
+    signal state : state_type;
 
     signal root_reg      : unsigned(9 downto 0);
     signal remainder_reg : unsigned(9 downto 0);
     signal mask_reg      : unsigned(9 downto 0);
 
-    signal done_reg      : std_logic := '0'; --darf so nicht gemacht werden laut klutti
-    signal result_reg    : unsigned(9 downto 0) := (others => '0'); --hier auch direkte zuweisung verboten
+    signal done_reg      : std_logic; 
+    signal result_reg    : unsigned(9 downto 0); 
 
     constant NR_OF_BITS : integer := 10; --hier auch
 
@@ -104,6 +104,8 @@ begin
 
                     done_reg <= '1';
                     state    <= IDLE;
+
+                when others => state <= IDLE;
 
             end case;
         end if;

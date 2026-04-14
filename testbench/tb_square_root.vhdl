@@ -16,11 +16,11 @@ end entity squareRoot_tb;
 
 architecture tb of squareRoot_tb is
 
+    -- component für DUT wie in LIFO Buffer
+
+
     -- DUT Signals
-
-
-    --er will das als component
-    signal s_clock     : std_logic := '0'; --direkte zuweisungen verboten
+    signal s_clock     : std_logic := '0'; --direkte zuweisungen verboten => Nimm ich raus
     signal s_reset     : std_logic := '1';
     signal s_start     : std_logic := '0';
     signal s_value     : std_logic_vector(9 downto 0) := (others => '0');
@@ -39,8 +39,8 @@ architecture tb of squareRoot_tb is
 
 begin
 
-    -- DUT Instanziierung
-    DUT: entity work.squareRoot --warum entity
+    -- DUT Instanziierung --warum entity => Weiss ich den Unterschied nicht
+    DUT: entity work.squareRoot 
         port map (
             clock   => s_clock,
             reset   => s_reset,
@@ -55,7 +55,7 @@ begin
     s_clock <= not s_clock after CLK_PERIOD/2;
 
     -- Stimulus + Self-Checking Process
-    stim_proc: process--er will eine eigene entity für fileread siehe golden reference ppt s.7
+    stim_proc: process--er will eine eigene entity für fileread siehe golden reference ppt s.7 => Kann man => Weiss ich nicht wie
 
         file golden_file : text open read_mode is "../golden reference/golden_reference_squareroot.txt";
         variable line_buf : line;
@@ -67,7 +67,7 @@ begin
         variable current_value  : unsigned(9 downto 0) := (others => '0');
         variable expected_res   : unsigned(9 downto 0) := (others => '0');
         variable current_round  : std_logic := '0';
---keine procedure?
+--keine procedure? => Möglich
     begin
         report "=== SquareRoot Testbench (mask/root/remainder Algorithmus) gestartet ===" severity note;
 
