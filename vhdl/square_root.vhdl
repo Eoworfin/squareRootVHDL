@@ -34,7 +34,7 @@ architecture rtl of squareRoot is
     signal done_reg      : std_logic; 
     signal result_reg    : unsigned(9 downto 0); 
 
-    constant NR_OF_BITS : integer := 10; --hier auch
+    constant NR_OF_BITS : integer := 10;
 
 begin
 

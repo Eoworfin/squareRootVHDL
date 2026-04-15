@@ -16,7 +16,7 @@ end entity squareRoot_tb;
 
 architecture tb of squareRoot_tb is
 
-    -- component für DUT wie in LIFO Buffer
+    -- component für DUT
     component squareRoot
         port (
         clock   : in  std_logic;
@@ -72,7 +72,7 @@ begin
         end loop;
     end process;
 
-    -- Stimulus + Self-Checking Process
+    -- Main Process
     stim_proc: process
 
         file golden_file : text open read_mode is "../golden reference/golden_reference_squareroot.txt";
@@ -82,9 +82,9 @@ begin
         variable v_exp    : integer;
         variable ok       : boolean;
 
-        variable current_value  : unsigned(9 downto 0) := (others => '0');
-        variable expected_res   : unsigned(9 downto 0) := (others => '0');
-        variable current_round  : std_logic := '0';
+        variable current_value  : unsigned(9 downto 0);
+        variable expected_res   : unsigned(9 downto 0);
+        variable current_round  : std_logic;
 
 
     -- Helper Function to check square root value
