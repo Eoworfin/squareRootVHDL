@@ -24,8 +24,8 @@ end entity;
 
 
 architecture rtl of squareRoot is
-    type state_type is (IDLE, INIT, CHECK, UPDATE, SHIFT, ROUND, DONE);
-    signal s_state, s_next_state : s_state_type;
+    type state_type is (IDLE, INIT, CHECK, UPDATE, SHIFT, ROUND, DONE_state);
+    signal s_state, s_next_state : state_type;
     signal s_root      : unsigned(9 downto 0);
     signal s_remainder : unsigned(9 downto 0);
     signal s_mask      : unsigned(9 downto 0);
@@ -57,9 +57,7 @@ begin
         when IDLE => if start = '1' then
                 s_next_state <= INIT;
             end if;
-
         when INIT => s_next_state <= CHECK;
-
         when CHECK => if s_mask = 0 then
                 s_next_state <= ROUND;
                     else
@@ -67,8 +65,8 @@ begin
             end if;
         when UPDATE => s_next_state <= SHIFT;
         when SHIFT => s_next_state <= CHECK;
-        when ROUND => s_next_state <= DONE;
-        when DONE => s_next_state <= IDLE;
+        when ROUND => s_next_state <= DONE_state;
+        when DONE_state => s_next_state <= IDLE;
     end case;
 end process;
 
@@ -86,7 +84,7 @@ begin
         when INIT =>
             s_root_next <= (others => '0');
             s_remainder_next <= unsigned(value);
-            s_ mask_next <= to_unsigned(256, 10); -- 2^(10-2)
+            s_mask_next <= to_unsigned(256, 10);
         when CHECK => null;
         when UPDATE =>
             if (s_root + s_mask) <= s_remainder then
@@ -97,10 +95,10 @@ begin
             s_root_next <= s_root_next srl 1;
             s_mask_next <= s_mask srl 2;
         when ROUND =>
-            if (s_remainder > s_root) and (s roundup = '1') then
+            if (s_remainder > s_root) and (roundup = '1') then
                 s_root_next <= s_root + 1;
             end if;
-        when DONE => done <= '1';
+        when DONE_state => done <= '1';
     end case;
 end process;
 
