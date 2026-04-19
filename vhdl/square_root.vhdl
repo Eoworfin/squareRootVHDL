@@ -89,11 +89,11 @@ begin
         when UPDATE =>
             if (s_root + s_mask) <= s_remainder then
                 s_remainder_next <= s_remainder - (s_root + s_mask);
-                s_root_next <= s_root + (s_mask sll 1);
+                s_root_next <= s_root + (s_mask(8 downto 0) & '0');
             end if;
         when SHIFT =>
-            s_root_next <= s_root_next srl 1;
-            s_mask_next <= s_mask srl 2;
+            s_root_next <= ('0' & s_root_next(9 downto 1));
+            s_mask_next <= ("00" & s_mask(9 downto 2));
         when ROUND =>
             if (s_remainder > s_root) and (roundup = '1') then
                 s_root_next <= s_root + 1;
